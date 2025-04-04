@@ -121,10 +121,6 @@ def image_to_image_tab():
                         # Call Gemini API
                         response = multi_image_generation(images, prompt)
 
-                        # For debugging purposes, show response details
-                        with st.expander("API Response Details (Debug Info)"):
-                            st.text(str(response))
-
                         # Extract and display response
                         output_image = extract_response_image(response)
                         if output_image:
@@ -139,7 +135,7 @@ def image_to_image_tab():
                                 st.write("**Model Response:**")
                                 st.write(output_text)
                             else:
-                                st.write(str(response))
+                                st.write("No image was generated.")
                             st.error("The model didn't return an image.")
                             st.info(
                                 "Tips to get better results: \n\n"

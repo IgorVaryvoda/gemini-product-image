@@ -35,30 +35,25 @@ def main():
 
     # Sidebar
     with st.sidebar:
-        st.subheader("About")
+        st.subheader("How It Works")
         st.markdown("""
-        This app uses Google's Gemini Flash 2 model to transform and edit images.
+        ### 1. Choose a Tab
+        - **Virtual Try On**: Transform images and combine multiple photos
+        - **Product Image Editing**: Polish and enhance product photos
 
-        **API Key Configuration:**
-        You can set your Google API key in either:
+        ### 2. Upload Image(s)
+        Upload one or more images to work with
 
-        1. `.streamlit/secrets.toml` file:
-        ```
-        GOOGLE_API_KEY = "your_api_key_here"
-        ```
+        ### 3. Select Options
+        Choose transformation types and customize settings
 
-        2. Or in a `.env` file:
-        ```
-        GOOGLE_API_KEY=your_api_key_here
-        ```
+        ### 4. Generate
+        Click the button to process your images with AI
         """)
-
-        st.subheader("Options")
-        st.checkbox("Enable high quality (may be slower)", value=False)
 
         # Add credits
         st.markdown("---")
-        st.caption("Built with Streamlit and Google Generative AI")
+        st.caption("Built with Streamlit and Google Gemini")
 
 
 if __name__ == "__main__":
