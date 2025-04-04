@@ -9,10 +9,10 @@ from app.utils.gemini_client import (
 
 
 def image_to_image_tab():
-    """Streamlit component for image-to-image virtual try on functionality."""
+    """Streamlit component for virtual try-on functionality."""
 
     st.header("Virtual Try On")
-    st.write("Upload images and transform them with Gemini Flash 2.")
+    st.write("See how clothing items would look on a person.")
 
     # File uploaders
     st.subheader("Upload Images")
@@ -21,91 +21,72 @@ def image_to_image_tab():
 
     with col1:
         primary_file = st.file_uploader(
-            "Upload primary image (person/product)",
+            "Upload image of a person",
             type=["jpg", "jpeg", "png"],
-            key="primary_image",
+            key="tryon_person",
         )
         if primary_file:
             primary_image = PIL.Image.open(primary_file)
-            st.image(primary_image, caption="Primary Image", use_container_width=True)
+            st.image(primary_image, caption="Person Image", use_container_width=True)
 
     with col2:
-        secondary_file = st.file_uploader(
-            "Upload reference image (optional)",
+        clothing_file = st.file_uploader(
+            "Upload clothing image (optional)",
             type=["jpg", "jpeg", "png"],
-            key="secondary_image",
+            key="tryon_clothing",
         )
-        if secondary_file:
-            secondary_image = PIL.Image.open(secondary_file)
-            st.image(
-                secondary_image, caption="Reference Image", use_container_width=True
-            )
+        if clothing_file:
+            clothing_image = PIL.Image.open(clothing_file)
+            st.image(clothing_image, caption="Clothing Image", use_container_width=True)
 
-    # Transformation options
+    # Try-on options
     if primary_file is not None:
-        st.subheader("Transformation Options")
+        st.subheader("Clothing Options")
 
-        transformation_type = st.selectbox(
-            "Select transformation type",
-            [
-                "Style transfer",
-                "Virtual try on clothing",
-                "Change background",
-                "Combine images",
-                "Custom",
-            ],
-        )
-
-        # Custom prompt based on transformation type
-        if transformation_type == "Style transfer":
-            prompt_template = "Transform the primary image in the style of {}"
-            style = st.selectbox(
-                "Select style",
+        if not clothing_file:
+            clothing_type = st.selectbox(
+                "Clothing type",
                 [
-                    "impressionism",
-                    "watercolor",
-                    "pop art",
-                    "cyberpunk",
-                    "anime",
-                    "sketch",
+                    "Casual outfit",
+                    "Formal outfit",
+                    "Sportswear",
+                    "Costume",
+                    "Custom",
                 ],
             )
-            prompt = prompt_template.format(style)
 
-        elif transformation_type == "Virtual try on clothing":
-            if secondary_file:
-                prompt = "Show the person in the primary image wearing the clothing from the reference image"
-            else:
+            if clothing_type == "Custom":
                 clothing = st.text_input(
                     "Describe the clothing", "a black leather jacket with jeans"
                 )
-                prompt = f"Show the person in the image wearing {clothing}"
-
-        elif transformation_type == "Change background":
-            if secondary_file:
-                prompt = "Change the background of the primary image to match the style/scene of the reference image"
             else:
-                background = st.text_input("Describe the background", "a beach sunset")
-                prompt = f"Change the background of the image to {background}"
+                clothing_descriptions = {
+                    "Casual outfit": "casual jeans and t-shirt outfit",
+                    "Formal outfit": "formal business suit or dress",
+                    "Sportswear": "athletic wear, gym outfit",
+                    "Costume": "Halloween or themed costume",
+                }
+                clothing = clothing_descriptions[clothing_type]
 
-        elif transformation_type == "Combine images":
-            if secondary_file:
-                prompt = "Create and generate a new image that combines visual elements from both the primary and reference images. Please return the resulting combined image."
-            else:
-                st.warning(
-                    "Please upload a reference image for this transformation type"
-                )
-                prompt = "Combine elements from both images into a new generated image"
+            prompt = f"Show the person in the image wearing {clothing}"
+        else:
+            prompt = "Show the person in the primary image wearing the clothing from the reference image"
 
-        else:  # Custom
-            prompt = st.text_area(
-                "Enter your custom prompt", "Transform these images to..."
-            )
+        # Additional instructions
+        st.subheader("Custom Instructions")
+        additional_instructions = st.text_area(
+            "Add any additional try-on instructions (optional)",
+            "",
+            key="additional_tryon_instructions",
+        )
+
+        if additional_instructions:
+            prompt += f" Additionally: {additional_instructions}"
 
         # Generate button
-        if st.button("Generate Transformed Image"):
+        if st.button("Generate Try-On Image"):
             if primary_file:
-                with st.spinner("Generating image transformation..."):
+                with st.spinner("Generating virtual try-on..."):
                     try:
                         # Get image bytes from uploaded files
                         primary_file.seek(0)
@@ -113,10 +94,10 @@ def image_to_image_tab():
 
                         images = [primary_bytes]
 
-                        if secondary_file:
-                            secondary_file.seek(0)
-                            secondary_bytes = secondary_file.read()
-                            images.append(secondary_bytes)
+                        if clothing_file:
+                            clothing_file.seek(0)
+                            clothing_bytes = clothing_file.read()
+                            images.append(clothing_bytes)
 
                         # Call Gemini API
                         response = multi_image_generation(images, prompt)
@@ -126,7 +107,7 @@ def image_to_image_tab():
                         if output_image:
                             st.image(
                                 output_image,
-                                caption="Transformed Image",
+                                caption="Virtual Try-On Result",
                                 use_container_width=True,
                             )
                         else:
@@ -139,17 +120,17 @@ def image_to_image_tab():
                             st.error("The model didn't return an image.")
                             st.info(
                                 "Tips to get better results: \n\n"
-                                + "1. Make sure both images are high quality \n"
-                                + "2. Try using more specific prompts \n"
-                                + "3. Try a different transformation type"
+                                + "1. Make sure the person is clearly visible \n"
+                                + "2. Try using more specific clothing descriptions \n"
+                                + "3. Use high quality reference clothing images"
                             )
 
                     except Exception as e:
-                        st.error(f"Error generating transformation: {str(e)}")
+                        st.error(f"Error generating try-on: {str(e)}")
                         st.info(
                             "Make sure your Google API key is configured correctly."
                         )
             else:
-                st.error("Please upload at least one image to begin.")
+                st.error("Please upload an image of a person to begin.")
     else:
-        st.info("Please upload at least one image to begin.")
+        st.info("Please upload an image of a person to begin.")

@@ -1,5 +1,6 @@
 import streamlit as st
 from app.components.image_to_image import image_to_image_tab
+from app.components.style_transfer import style_transfer_tab
 from app.components.product_editing import product_editing_tab
 
 # Set page config
@@ -19,18 +20,24 @@ def main():
     Transform and edit images using Google's Gemini Flash 2 AI model.
 
     **Features:**
-    - Virtual Try On: Transform images with style transfer, clothing changes, and more
-    - Product Image Editing: Edit product images for commercial use
+    - Virtual Try On: See how clothing would look on a person
+    - Image Transformations: Apply style transfer and other effects
+    - Product Editing: Enhance product images for commercial use
     """)
 
     # Create tabs
-    tab1, tab2 = st.tabs(["Virtual Try On", "Product Image Editing"])
+    tab1, tab2, tab3 = st.tabs(
+        ["Virtual Try On", "Image Transformations", "Product Editing"]
+    )
 
     # Tab content
     with tab1:
         image_to_image_tab()
 
     with tab2:
+        style_transfer_tab()
+
+    with tab3:
         product_editing_tab()
 
     # Sidebar
@@ -38,8 +45,9 @@ def main():
         st.subheader("How It Works")
         st.markdown("""
         ### 1. Choose a Tab
-        - **Virtual Try On**: Transform images and combine multiple photos
-        - **Product Image Editing**: Polish and enhance product photos
+        - **Virtual Try On**: Try clothes on a person
+        - **Image Transformations**: Style transfer and image edits
+        - **Product Editing**: Enhance product photos
 
         ### 2. Upload Image(s)
         Upload one or more images to work with
