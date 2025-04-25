@@ -2,10 +2,15 @@ import streamlit as st
 import PIL.Image
 
 from app.utils.gemini_client import (
-    image_to_image_generation,
-    multi_image_generation,
-    extract_response_image,
-    extract_response_text,
+    image_to_image_generation as gemini_image_generation,
+    multi_image_generation as gemini_multi_image_generation,
+    extract_response_image as gemini_extract_response_image,
+    extract_response_text as gemini_extract_response_text,
+)
+from app.utils.openai_client import (
+    multi_image_generation as openai_multi_image_generation,
+    extract_response_image as openai_extract_response_image,
+    extract_response_text as openai_extract_response_text,
 )
 
 
@@ -13,7 +18,26 @@ def product_editing_tab():
     """Streamlit component for product image editing functionality."""
 
     st.header("Product Image Editing")
-    st.write("Upload a product image and refine it with Gemini Flash 2.")
+    st.write("Upload a product image and refine it with AI.")
+
+    # Model selection
+    st.subheader("Model Selection")
+    model_provider = st.selectbox(
+        "Select AI provider", ["Google Gemini", "OpenAI"], key="product_provider"
+    )
+
+    if model_provider == "Google Gemini":
+        gemini_models = ["gemini-2.0-flash-exp-image-generation"]
+        model_name = st.selectbox(
+            "Select Gemini model", gemini_models, key="product_gemini_model"
+        )
+    else:  # OpenAI
+        openai_models = ["gpt-image-1"]
+        model_name = st.selectbox(
+            "Select OpenAI model", openai_models, key="product_openai_model"
+        )
+        size_options = ["1024x1024", "1536x1024", "1024x1536"]
+        image_size = st.selectbox("Image size", size_options, key="product_size")
 
     # File uploader for main product image
     uploaded_file = st.file_uploader(
@@ -42,7 +66,10 @@ def product_editing_tab():
 
         # Custom prompt based on editing type
         if editing_type == "Background removal":
-            prompt = "Remove the background from this product image and replace it with a clean white background."
+            prompt = (
+                "Remove the background from this product image and replace "
+                "it with a clean white background."
+            )
 
         elif editing_type == "Replace background":
             # Add background image uploader
@@ -60,9 +87,16 @@ def product_editing_tab():
                     caption="Background Image",
                     use_container_width=True,
                 )
-                prompt = "Remove the background from the first product image and place it on the background from the second image. Make it look natural and well-integrated."
+                prompt = (
+                    "Remove the background from the first product image and "
+                    "place it on the background from the second image. Make "
+                    "it look natural and well-integrated."
+                )
             else:
-                prompt = "Remove the background from this product image and replace it with a clean white background."
+                prompt = (
+                    "Remove the background from this product image and "
+                    "replace it with a clean white background."
+                )
                 st.info("Upload a background image to replace the product background.")
 
         elif editing_type == "Change product color":
@@ -83,7 +117,10 @@ def product_editing_tab():
             prompt = f"Apply a {effect} effect to this product image."
 
         elif editing_type == "Enhance quality":
-            prompt = "Enhance this product image: increase resolution, improve lighting, and make it look professional."
+            prompt = (
+                "Enhance this product image: increase resolution, improve "
+                "lighting, and make it look professional."
+            )
 
         else:  # Custom edit
             prompt = st.text_area(
@@ -123,21 +160,34 @@ def product_editing_tab():
                     uploaded_file.seek(0)
                     image_bytes = uploaded_file.read()
 
-                    # Call Gemini API
+                    # Prepare images list
+                    images = [image_bytes]
+
                     if editing_type == "Replace background" and background_file:
                         background_file.seek(0)
                         background_bytes = background_file.read()
+                        images.append(background_bytes)
 
-                        # Use multi-image generation function
-                        response = multi_image_generation(
-                            [image_bytes, background_bytes], prompt
+                    # Call the selected API
+                    if model_provider == "Google Gemini":
+                        if len(images) > 1:
+                            response = gemini_multi_image_generation(
+                                images, prompt, model=model_name
+                            )
+                        else:
+                            response = gemini_image_generation(
+                                images[0], prompt, model=model_name
+                            )
+                        output_image = gemini_extract_response_image(response)
+                        output_text = gemini_extract_response_text(response)
+                    else:  # OpenAI
+                        response = openai_multi_image_generation(
+                            images, prompt, model=model_name, size=image_size
                         )
-                    else:
-                        # Use single image generation function
-                        response = image_to_image_generation(image_bytes, prompt)
+                        output_image = openai_extract_response_image(response)
+                        output_text = openai_extract_response_text(response)
 
-                    # Extract and display response
-                    output_image = extract_response_image(response)
+                    # Display response
                     if output_image:
                         st.image(
                             output_image,
@@ -145,21 +195,29 @@ def product_editing_tab():
                             use_container_width=True,
                         )
                     else:
-                        output_text = extract_response_text(response)
                         if output_text:
                             st.write("**Model Response:**")
                             st.write(output_text)
                         else:
                             st.write("No image was generated.")
                         st.error("The model didn't return an image.")
-                        st.info(
+                        tips = (
                             "Tips to get better results: \n\n"
-                            + "1. Make sure images are high quality \n"
-                            + "2. Try using more specific prompts \n"
-                            + "3. Try a different editing operation"
+                            "1. Make sure images are high quality \n"
+                            "2. Try using more specific prompts \n"
+                            "3. Try a different editing operation"
                         )
+                        st.info(tips)
                 except Exception as e:
                     st.error(f"Error processing image: {str(e)}")
-                    st.info("Make sure your Google API key is configured correctly.")
+                    if model_provider == "Google Gemini":
+                        api_key_msg = (
+                            "Make sure your Google API key is configured correctly."
+                        )
+                    else:
+                        api_key_msg = (
+                            "Make sure your OpenAI API key is configured correctly."
+                        )
+                    st.info(api_key_msg)
     else:
         st.info("Please upload a product image to begin.")

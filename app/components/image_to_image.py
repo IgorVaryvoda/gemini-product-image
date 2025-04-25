@@ -2,9 +2,14 @@ import streamlit as st
 import PIL.Image
 
 from app.utils.gemini_client import (
-    multi_image_generation,
-    extract_response_image,
-    extract_response_text,
+    multi_image_generation as gemini_multi_image_generation,
+    extract_response_image as gemini_extract_response_image,
+    extract_response_text as gemini_extract_response_text,
+)
+from app.utils.openai_client import (
+    multi_image_generation as openai_multi_image_generation,
+    extract_response_image as openai_extract_response_image,
+    extract_response_text as openai_extract_response_text,
 )
 
 
@@ -13,6 +18,19 @@ def image_to_image_tab():
 
     st.header("Virtual Try On")
     st.write("See how clothing items would look on a person.")
+
+    # Model selection
+    st.subheader("Model Selection")
+    model_provider = st.selectbox("Select AI provider", ["Google Gemini", "OpenAI"])
+
+    if model_provider == "Google Gemini":
+        gemini_models = ["gemini-2.0-flash-exp-image-generation"]
+        model_name = st.selectbox("Select Gemini model", gemini_models)
+    else:  # OpenAI
+        openai_models = ["gpt-image-1"]
+        model_name = st.selectbox("Select OpenAI model", openai_models)
+        size_options = ["1024x1024", "1536x1024", "1024x1536"]
+        image_size = st.selectbox("Image size", size_options)
 
     # File uploaders
     st.subheader("Upload Images")
@@ -70,7 +88,10 @@ def image_to_image_tab():
 
             prompt = f"Show the person in the image wearing {clothing}"
         else:
-            prompt = "Show the person in the primary image wearing the clothing from the reference image"
+            prompt = (
+                "Show the person in the primary image wearing the clothing "
+                "from the reference image"
+            )
 
         # Additional instructions
         st.subheader("Custom Instructions")
@@ -99,11 +120,21 @@ def image_to_image_tab():
                             clothing_bytes = clothing_file.read()
                             images.append(clothing_bytes)
 
-                        # Call Gemini API
-                        response = multi_image_generation(images, prompt)
+                        # Call the selected API
+                        if model_provider == "Google Gemini":
+                            response = gemini_multi_image_generation(
+                                images, prompt, model=model_name
+                            )
+                            output_image = gemini_extract_response_image(response)
+                            output_text = gemini_extract_response_text(response)
+                        else:  # OpenAI
+                            response = openai_multi_image_generation(
+                                images, prompt, model=model_name, size=image_size
+                            )
+                            output_image = openai_extract_response_image(response)
+                            output_text = openai_extract_response_text(response)
 
-                        # Extract and display response
-                        output_image = extract_response_image(response)
+                        # Display response
                         if output_image:
                             st.image(
                                 output_image,
@@ -111,25 +142,32 @@ def image_to_image_tab():
                                 use_container_width=True,
                             )
                         else:
-                            output_text = extract_response_text(response)
                             if output_text:
                                 st.write("**Model Response:**")
                                 st.write(output_text)
                             else:
                                 st.write("No image was generated.")
-                            st.error("The model didn't return an image.")
-                            st.info(
+                            tips = (
                                 "Tips to get better results: \n\n"
-                                + "1. Make sure the person is clearly visible \n"
-                                + "2. Try using more specific clothing descriptions \n"
-                                + "3. Use high quality reference clothing images"
+                                "1. Make sure the person is clearly visible \n"
+                                "2. Try using more specific clothing "
+                                "descriptions \n"
+                                "3. Use high quality reference clothing "
+                                "images"
                             )
+                            st.info(tips)
 
                     except Exception as e:
                         st.error(f"Error generating try-on: {str(e)}")
-                        st.info(
-                            "Make sure your Google API key is configured correctly."
-                        )
+                        if model_provider == "Google Gemini":
+                            api_key_msg = (
+                                "Make sure your Google API key is configured correctly."
+                            )
+                        else:
+                            api_key_msg = (
+                                "Make sure your OpenAI API key is configured correctly."
+                            )
+                        st.info(api_key_msg)
             else:
                 st.error("Please upload an image of a person to begin.")
     else:
