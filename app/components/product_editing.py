@@ -8,6 +8,7 @@ from app.utils.gemini_client import (
     extract_response_text as gemini_extract_response_text,
 )
 from app.utils.openai_client import (
+    image_to_image_generation as openai_image_generation,
     multi_image_generation as openai_multi_image_generation,
     extract_response_image as openai_extract_response_image,
     extract_response_text as openai_extract_response_text,
@@ -181,9 +182,14 @@ def product_editing_tab():
                         output_image = gemini_extract_response_image(response)
                         output_text = gemini_extract_response_text(response)
                     else:  # OpenAI
-                        response = openai_multi_image_generation(
-                            images, prompt, model=model_name, size=image_size
-                        )
+                        if len(images) > 1:
+                            response = openai_multi_image_generation(
+                                images, prompt, model=model_name, size=image_size
+                            )
+                        else:
+                            response = openai_image_generation(
+                                images[0], prompt, model=model_name, size=image_size
+                            )
                         output_image = openai_extract_response_image(response)
                         output_text = openai_extract_response_text(response)
 

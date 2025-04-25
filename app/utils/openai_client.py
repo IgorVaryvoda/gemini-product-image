@@ -50,6 +50,31 @@ def process_image(image: Union[str, PIL.Image.Image, bytes]):
         )
 
 
+def image_to_image_generation(image, prompt, model="gpt-image-1", size="1024x1024"):
+    """Generate a transformed image based on a source image and prompt."""
+    api_key = get_api_key()
+    client = OpenAI(api_key=api_key)
+
+    # Process the image
+    processed_image = process_image(image)
+
+    # Convert bytes to file-like object with proper MIME type
+    import io
+
+    img_obj = io.BytesIO(processed_image)
+    img_obj.name = "image.png"  # Set a filename with extension
+
+    try:
+        # Use edit endpoint for a single image transformation
+        result = client.images.edit(
+            model=model, image=img_obj, prompt=prompt, size=size
+        )
+        return result
+    except Exception as e:
+        st.error(f"Error with OpenAI image edit: {str(e)}")
+        return None
+
+
 def multi_image_generation(
     images_list: List, prompt, model="gpt-image-1", size="1024x1024"
 ):
@@ -83,11 +108,14 @@ def multi_image_generation(
             st.error(f"Error with OpenAI image edit: {str(e)}")
             return None
     else:
-        # For single image, use the generation endpoint
+        # For single image with OpenAI, we still use the edit endpoint
+        # instead of generate to respect the input image
         try:
-            result = client.images.generate(model=model, prompt=prompt, size=size)
+            return image_to_image_generation(
+                processed_images[0], prompt, model=model, size=size
+            )
         except Exception as e:
-            st.error(f"Error with OpenAI image generation: {str(e)}")
+            st.error(f"Error with OpenAI image processing: {str(e)}")
             return None
 
     return result
