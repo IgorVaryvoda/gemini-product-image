@@ -8,7 +8,6 @@ import requests
 from dotenv import load_dotenv
 from openai import OpenAI
 import streamlit as st
-import io
 
 # Load environment variables
 load_dotenv()
@@ -63,18 +62,22 @@ def multi_image_generation(
     # If there are multiple images, use the edit endpoint
     if len(processed_images) > 1:
         try:
-            # Primary image needs to be a file with proper MIME type
-            primary_img = io.BytesIO(processed_images[0])
-            primary_img.name = "image.png"  # Set a filename with extension
+            # Convert bytes to file-like objects with proper MIME type
+            import io
 
-            # Reference image for edit (optional)
-            mask_img = None
-            if len(processed_images) > 1:
-                mask_img = io.BytesIO(processed_images[1])
-                mask_img.name = "mask.png"
+            # Prepare image objects as a list
+            image_objects = []
+            for i, img_bytes in enumerate(processed_images):
+                img_obj = io.BytesIO(img_bytes)
+                img_obj.name = f"image_{i}.png"  # Set filename with extension
+                image_objects.append(img_obj)
 
+            # Call the edit endpoint with multiple images
             result = client.images.edit(
-                model=model, image=primary_img, mask=mask_img, prompt=prompt, size=size
+                model=model,
+                image=image_objects,  # Pass list of file-like objects
+                prompt=prompt,
+                size=size,
             )
         except Exception as e:
             st.error(f"Error with OpenAI image edit: {str(e)}")
