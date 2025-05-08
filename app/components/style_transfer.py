@@ -26,7 +26,7 @@ def style_transfer_tab():
     )
 
     if model_provider == "Google Gemini":
-        gemini_models = ["gemini-2.0-flash-exp-image-generation"]
+        gemini_models = ["gemini-2.0-flash-preview-image-generation"]
         model_name = st.selectbox(
             "Select Gemini model", gemini_models, key="style_gemini_model"
         )

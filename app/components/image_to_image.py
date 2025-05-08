@@ -24,7 +24,7 @@ def image_to_image_tab():
     model_provider = st.selectbox("Select AI provider", ["Google Gemini", "OpenAI"])
 
     if model_provider == "Google Gemini":
-        gemini_models = ["gemini-2.0-flash-exp-image-generation"]
+        gemini_models = ["gemini-2.0-flash-preview-image-generation"]
         model_name = st.selectbox("Select Gemini model", gemini_models)
     else:  # OpenAI
         openai_models = ["gpt-image-1"]

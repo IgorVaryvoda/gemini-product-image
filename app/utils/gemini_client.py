@@ -51,7 +51,7 @@ def process_image(image: Union[str, PIL.Image.Image, bytes]):
 
 
 def image_to_image_generation(
-    source_image, prompt, model="gemini-2.0-flash-exp-image-generation"
+    source_image, prompt, model="gemini-2.0-flash-preview-image-generation"
 ):
     """Generate a transformed image based on a source image and prompt."""
 
@@ -69,7 +69,7 @@ def image_to_image_generation(
 
 
 def multi_image_generation(
-    images_list: List, prompt, model="gemini-2.0-flash-exp-image-generation"
+    images_list: List, prompt, model="gemini-2.0-flash-preview-image-generation"
 ):
     """Generate content based on multiple images and a prompt."""
     processed_images = [process_image(img) for img in images_list]
